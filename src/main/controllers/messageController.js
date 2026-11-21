@@ -202,8 +202,8 @@ export const sendMessage = async (req, res, user = null) => {
         });
       }
 
-      if (!contactValidationService.isValidContact(recipient) && user.whitelistedContacts?.length > 0) {
-        const normalized = recipient.replace(/[^0-9]/g, '');
+      if (!finalRecipient.endsWith('@g.us') && !contactValidationService.isValidContact(finalRecipient) && user.whitelistedContacts?.length > 0) {
+        const normalized = finalRecipient.replace(/[^0-9]/g, '');
         if (!user.whitelistedContacts.some(c => normalized.includes(c) || c.includes(normalized))) {
           return res.status(403).json({
             success: false,
@@ -339,13 +339,16 @@ export const sendMessage = async (req, res, user = null) => {
     stats.totalSent++;
     stats.sentToday++;
 
-    // Try to get contact name for better logging
+    // Try to get contact or group name for better logging
+    const isGroup = finalRecipient.endsWith('@g.us');
     const contactName = await whatsappService.getContactName(whatsappService.formatPhoneNumber(finalRecipient));
 
     await incrementSessionSent();
-    await addSessionAction(isBulk 
-      ? `Sent campaign message to ${finalRecipient} (${contactName || ''})` 
-      : `Sent single message to ${finalRecipient} (${contactName || ''})`
+    await addSessionAction(isGroup 
+      ? `Sent message to Group "${contactName || finalRecipient}"` 
+      : (isBulk 
+        ? `Sent campaign message to ${finalRecipient} (${contactName || ''})` 
+        : `Sent single message to ${finalRecipient} (${contactName || ''})`)
     );
 
     await addLog({
@@ -398,7 +401,7 @@ export const getGroupInfo = async (req, res) => {
     if (!waStatus.isReady) {
       return res.status(503).json({
         success: false,
-        error: 'WhatsApp client is not ready',
+        error: 'WhatsApp client is not ready. Please connect WhatsApp first.',
         code: 'CLIENT_NOT_READY',
       });
     }
@@ -408,9 +411,10 @@ export const getGroupInfo = async (req, res) => {
     res.json({
       success: true,
       groups: groups.map(g => ({
-        id: g.id._serialized,
-        name: g.name,
-        participants: g.participants.length,
+        id: g.id?._serialized || g.id,
+        name: g.name || 'Unnamed Group',
+        participants: Array.isArray(g.participants) ? g.participants.length : (g.groupMetadata?.participants?.length || 0),
+        unreadCount: g.unreadCount || 0,
       })),
     });
   } catch (error) {

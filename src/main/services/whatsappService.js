@@ -201,6 +201,11 @@ class WhatsAppService {
   }
 
   formatPhoneNumber(phone) {
+    if (!phone) return '';
+    phone = String(phone).trim();
+    if (phone.endsWith('@g.us') || phone.endsWith('@c.us')) {
+      return phone;
+    }
     let cleaned = phone.replace(/[^0-9]/g, '');
     if (!cleaned.startsWith('91') && cleaned.length === 12) {
       cleaned = '91' + cleaned;
@@ -263,10 +268,14 @@ class WhatsAppService {
   }
 
   async getContactName(chatId) {
-    if (!this.isReady) return null;
+    if (!this.isReady || !chatId) return null;
     try {
+      if (chatId.endsWith('@g.us')) {
+        const chat = await this.client.getChatById(chatId);
+        return chat ? (chat.name || 'Group') : 'Group';
+      }
       const contact = await this.client.getContactById(chatId);
-      return contact.name || contact.pushname || contact.number;
+      return contact ? (contact.name || contact.pushname || contact.number) : null;
     } catch (err) {
       return null;
     }
@@ -366,8 +375,14 @@ class WhatsAppService {
   }
 
   async getGroups() {
-    const chats = await this.getChats();
-    return chats.filter(chat => chat.isGroup);
+    if (!this.isReady) return [];
+    try {
+      const chats = await this.getChats();
+      return chats.filter(chat => chat && (chat.isGroup || (chat.id && chat.id._serialized && chat.id._serialized.endsWith('@g.us'))));
+    } catch (err) {
+      console.error('Error fetching groups:', err);
+      return [];
+    }
   }
 
   async getContacts() {

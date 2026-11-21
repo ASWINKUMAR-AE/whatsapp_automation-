@@ -3,19 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Send, Image, FileText, Loader2, CheckCircle, 
-  AlertCircle, Phone, MessageSquare, Upload, X, Clock
+  AlertCircle, Phone, MessageSquare, Upload, X, Clock,
+  Users, Search, RefreshCw, Check
 } from 'lucide-react';
-import { sendMessage, sendRemoteImage, sendRemoteDocument, sendLocalMedia } from '../services/api';
+import { sendMessage, sendLocalMedia, getGroupInfo } from '../services/api';
 
 function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipient = '' }) {
+  const [destinationType, setDestinationType] = useState('contact'); // 'contact' | 'group'
   const [recipient, setRecipient] = useState(initialRecipient);
   const [message, setMessage] = useState('');
-  const [mediaUrl, setMediaUrl] = useState(''); // Keep for fallback or clear out
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [activeTab, setActiveTab] = useState('text');
   const [countdown, setCountdown] = useState(0);
+
+  // Group states
+  const [groups, setGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,8 +36,42 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
   useEffect(() => {
     if (initialRecipient) {
       setRecipient(initialRecipient);
+      if (initialRecipient.endsWith('@g.us')) {
+        setDestinationType('group');
+      }
     }
   }, [initialRecipient]);
+
+  const loadGroups = async () => {
+    if (!isConnected) return;
+    setLoadingGroups(true);
+    try {
+      const data = await getGroupInfo();
+      if (data.success && Array.isArray(data.groups)) {
+        setGroups(data.groups);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected && destinationType === 'group' && groups.length === 0) {
+      loadGroups();
+    }
+  }, [isConnected, destinationType]);
+
+  const handleSelectGroup = (group) => {
+    setSelectedGroup(group);
+    setRecipient(group.id);
+  };
+
+  const filteredGroups = groups.filter(g => 
+    (g.name && g.name.toLowerCase().includes(groupSearch.toLowerCase())) ||
+    (g.id && g.id.toLowerCase().includes(groupSearch.toLowerCase()))
+  );
 
   const canSend = () => {
     if (!isConnected) return { allowed: false, reason: 'WhatsApp not connected. Scan QR first.' };
@@ -42,7 +84,11 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
 
   const handleSendText = async () => {
     if (!recipient.trim()) {
-      setResult({ success: false, message: 'Please enter recipient number', type: 'error' });
+      setResult({ 
+        success: false, 
+        message: destinationType === 'group' ? 'Please select a WhatsApp group' : 'Please enter recipient number', 
+        type: 'error' 
+      });
       return;
     }
 
@@ -57,9 +103,11 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
 
     try {
       const response = await sendMessage(recipient, message);
+      const isGroup = recipient.endsWith('@g.us');
+      const targetLabel = isGroup && selectedGroup ? `Group "${selectedGroup.name}"` : recipient;
       setResult({ 
         success: true, 
-        message: 'Message sent successfully!', 
+        message: `Message sent successfully to ${targetLabel}!`, 
         type: 'success',
         rateLimit: response.rateLimit
       });
@@ -79,7 +127,11 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
 
   const handleSendMedia = async (type) => {
     if (!recipient.trim() || !selectedFile) {
-      setResult({ success: false, message: `Please enter recipient and select a ${type}`, type: 'error' });
+      setResult({ 
+        success: false, 
+        message: `Please ${destinationType === 'group' ? 'select a group' : 'enter recipient'} and select a ${type}`, 
+        type: 'error' 
+      });
       return;
     }
 
@@ -100,7 +152,7 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
         reader.onerror = error => reject(error);
       });
 
-      const response = await sendLocalMedia(
+      await sendLocalMedia(
         recipient,
         message,
         base64File,
@@ -108,7 +160,9 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
         selectedFile.type
       );
       
-      setResult({ success: true, message: `${type} sent successfully!`, type: 'success' });
+      const isGroup = recipient.endsWith('@g.us');
+      const targetLabel = isGroup && selectedGroup ? `Group "${selectedGroup.name}"` : recipient;
+      setResult({ success: true, message: `${type} sent successfully to ${targetLabel}!`, type: 'success' });
       setSelectedFile(null);
       setMessage('');
       onMessageSent();
@@ -151,7 +205,7 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">Send Message</h2>
-            <p className="text-slate-600 text-sm">Compose and send messages</p>
+            <p className="text-slate-600 text-sm">Send to individual contacts or WhatsApp groups</p>
           </div>
         </div>
         
@@ -163,6 +217,46 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
         )}
       </div>
 
+      {/* Target Destination Toggle: Contact vs Group */}
+      <div className="mb-4">
+        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Send Target</label>
+        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => {
+              setDestinationType('contact');
+              setSelectedGroup(null);
+              setRecipient('');
+            }}
+            className={`py-2 px-3 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+              destinationType === 'contact'
+                ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Phone className="w-4 h-4" />
+            Individual Contact
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDestinationType('group');
+              setRecipient('');
+              loadGroups();
+            }}
+            className={`py-2 px-3 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${
+              destinationType === 'group'
+                ? 'bg-white text-emerald-600 shadow-sm border border-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            WhatsApp Group
+          </button>
+        </div>
+      </div>
+
+      {/* Media Type Tabs */}
       <div className="flex gap-2 mb-6">
         {tabs.map((tab) => (
           <button
@@ -181,22 +275,121 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
       </div>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Recipient Number</label>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-              <Phone className="w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+        {destinationType === 'contact' ? (
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Recipient Phone Number</label>
+            <div className="relative group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                <Phone className="w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                placeholder="+919876543210"
+                className="input-field w-full pl-14"
+              />
             </div>
-            <input
-              type="text"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              placeholder="+1234567890"
-              className="input-field w-full pl-14"
-            />
+            <p className="text-xs text-slate-500 mt-1">Include country code (e.g., +1, +91)</p>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Include country code (e.g., +1, +91)</p>
-        </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-slate-700">Select WhatsApp Group</label>
+              <button
+                type="button"
+                onClick={loadGroups}
+                disabled={loadingGroups || !isConnected}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? 'animate-spin' : ''}`} />
+                Refresh Groups
+              </button>
+            </div>
+
+            {selectedGroup && (
+              <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-950">{selectedGroup.name}</p>
+                    <p className="text-xs text-emerald-700">{selectedGroup.participants} participants</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedGroup(null);
+                    setRecipient('');
+                  }}
+                  className="text-emerald-700 hover:text-emerald-900 p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={groupSearch}
+                  onChange={(e) => setGroupSearch(e.target.value)}
+                  placeholder="Search groups..."
+                  className="input-field w-full pl-10 text-sm"
+                />
+              </div>
+
+              <div className="border border-slate-200 rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-100 bg-slate-50/50">
+                {loadingGroups ? (
+                  <div className="p-4 text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                    Loading WhatsApp groups...
+                  </div>
+                ) : filteredGroups.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-slate-500">
+                    {groups.length === 0 
+                      ? 'No groups found. Make sure WhatsApp is connected and you are in at least one group.'
+                      : 'No groups match your search.'}
+                  </div>
+                ) : (
+                  filteredGroups.map((group) => {
+                    const isSelected = selectedGroup?.id === group.id || recipient === group.id;
+                    return (
+                      <div
+                        key={group.id}
+                        onClick={() => handleSelectGroup(group)}
+                        className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected ? 'bg-emerald-50/80' : 'hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+                          }`}>
+                            <Users className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{group.name}</p>
+                            <p className="text-xs text-slate-500">{group.participants} participants</p>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {activeTab === 'text' && (
@@ -211,7 +404,7 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type your message here..."
+                  placeholder={destinationType === 'group' ? 'Type your group message here...' : 'Type your message here...'}
                   rows={4}
                   className="input-field w-full resize-none"
                 />
@@ -336,7 +529,7 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
           ) : (
             <>
               <Send className="w-5 h-5" />
-              Send {activeTab === 'text' ? 'Message' : activeTab}
+              Send {activeTab === 'text' ? 'Message' : activeTab} to {destinationType === 'group' ? 'Group' : 'Contact'}
             </>
           )}
         </button>

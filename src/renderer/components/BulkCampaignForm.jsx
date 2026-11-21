@@ -5,7 +5,7 @@ import {
   Trash2, X, Users, AlertCircle, CheckCircle2, RefreshCw, Layers,
   Search
 } from 'lucide-react';
-import { getContacts, sendMessage, sendLocalMedia } from '../services/api';
+import { getContacts, sendMessage, sendLocalMedia, getGroupInfo } from '../services/api';
 
 export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignComplete }) {
   const [contacts, setContacts] = useState([]);
@@ -19,11 +19,59 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
   );
   
   // Input fields
-  const [contactSource, setContactSource] = useState('list'); // 'list' | 'manual' | 'csv'
+  const [contactSource, setContactSource] = useState('list'); // 'list' | 'manual' | 'csv' | 'groups'
   const [manualNumbers, setManualNumbers] = useState('');
   const [csvFile, setCsvFile] = useState(null);
   const [parsedCsvCount, setParsedCsvCount] = useState(0);
   const [parsedCsvNumbers, setParsedCsvNumbers] = useState([]);
+  
+  // WhatsApp Groups
+  const [groups, setGroups] = useState([]);
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [groupSearch, setGroupSearch] = useState('');
+
+  const filteredGroups = groups.filter(g => 
+    (g.name && g.name.toLowerCase().includes(groupSearch.toLowerCase())) ||
+    (g.id && g.id.toLowerCase().includes(groupSearch.toLowerCase()))
+  );
+
+  const loadGroups = async () => {
+    if (!isConnected) return;
+    setLoadingGroups(true);
+    try {
+      const data = await getGroupInfo();
+      if (data.success && Array.isArray(data.groups)) {
+        setGroups(data.groups);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected && contactSource === 'groups' && groups.length === 0) {
+      loadGroups();
+    }
+  }, [isConnected, contactSource]);
+
+  const handleSelectAllGroups = () => {
+    if (selectedGroups.length === groups.length) {
+      setSelectedGroups([]);
+    } else {
+      setSelectedGroups(groups.map(g => g.id));
+    }
+  };
+
+  const handleToggleGroupSelection = (groupId) => {
+    if (selectedGroups.includes(groupId)) {
+      setSelectedGroups(prev => prev.filter(id => id !== groupId));
+    } else {
+      setSelectedGroups(prev => [...prev, groupId]);
+    }
+  };
   
   const [activeTab, setActiveTab] = useState('text'); // 'text' | 'image' | 'document'
   const [message, setMessage] = useState('');
@@ -119,6 +167,8 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
   const getCompiledRecipients = () => {
     if (contactSource === 'list') {
       return selectedContacts;
+    } else if (contactSource === 'groups') {
+      return selectedGroups;
     } else if (contactSource === 'manual') {
       const parsed = manualNumbers.match(/\b(?:\+?91)?[6789]\d{9}\b/g) || [];
       return [...new Set(parsed.map(num => {
@@ -321,12 +371,18 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
             {/* 1. Contact Source selection tabs */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">1. Choose Recipient Source</label>
-              <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
                 <button
                   onClick={() => setContactSource('list')}
                   className={`py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${contactSource === 'list' ? 'bg-white text-emerald-600 border border-slate-200 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
                 >
                   <Users className="w-4 h-4" /> Whitelist
+                </button>
+                <button
+                  onClick={() => { setContactSource('groups'); loadGroups(); }}
+                  className={`py-2 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${contactSource === 'groups' ? 'bg-white text-emerald-600 border border-slate-200 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  <Users className="w-4 h-4" /> Groups ({groups.length})
                 </button>
                 <button
                   onClick={() => setContactSource('manual')}
@@ -399,6 +455,81 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
                           </div>
                         </label>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {contactSource === 'groups' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-700">WhatsApp Groups ({groups.length})</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={loadGroups}
+                        disabled={loadingGroups || !isConnected}
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loadingGroups ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                      <button
+                        onClick={handleSelectAllGroups}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
+                      >
+                        {selectedGroups.length === groups.length && groups.length > 0 ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search groups by name..."
+                      value={groupSearch}
+                      onChange={(e) => setGroupSearch(e.target.value)}
+                      className="input-field w-full pl-10 text-xs py-1.5"
+                    />
+                  </div>
+                  
+                  {loadingGroups ? (
+                    <div className="flex items-center justify-center p-6 text-sm text-slate-500 gap-2">
+                      <RefreshCw className="w-5 h-5 text-emerald-600 animate-spin" />
+                      Loading WhatsApp groups...
+                    </div>
+                  ) : filteredGroups.length === 0 ? (
+                    <div className="text-center p-6 text-slate-500 text-sm bg-white border border-slate-100 rounded-lg">
+                      {groups.length === 0 
+                        ? 'No groups found. Please make sure WhatsApp is connected.' 
+                        : 'No groups match your search filter.'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                      {filteredGroups.map((group) => {
+                        const isChecked = selectedGroups.includes(group.id);
+                        return (
+                          <label
+                            key={group.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                              isChecked
+                                ? 'bg-emerald-50/50 border-emerald-300'
+                                : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleGroupSelection(group.id)}
+                              className="rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 w-4 h-4"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-800 truncate">{group.name}</p>
+                              <p className="text-xs text-slate-500">{group.participants} participants</p>
+                            </div>
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
