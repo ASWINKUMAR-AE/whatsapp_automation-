@@ -7,12 +7,14 @@ function RateLimitIndicator({ rateLimit, subscription }) {
   
   if (!sub) return null;
 
-  const dailyLimit = sub.dailyLimit || 50;
-  const remaining = sub.remaining !== undefined ? sub.remaining : (dailyLimit - (sub.sentToday || 0));
-  const dailyPercent = ((dailyLimit - remaining) / dailyLimit) * 100;
-  const canSend = sub.canSend !== false;
+  const isUnlimited = sub.dailyLimit === 'Unlimited' || sub.plan === 'free' || sub.dailyLimit >= 999999;
+  const dailyLimit = isUnlimited ? 'Unlimited' : (sub.dailyLimit || 50);
+  const remaining = isUnlimited ? 'Unlimited' : (sub.remaining !== undefined ? sub.remaining : (dailyLimit - (sub.sentToday || 0)));
+  const dailyPercent = isUnlimited ? 100 : Math.min(100, Math.max(0, ((dailyLimit - remaining) / dailyLimit) * 100));
+  const canSend = true;
 
   const getColor = (percent) => {
+    if (isUnlimited) return 'bg-emerald-500';
     if (percent < 50) return 'bg-emerald-500';
     if (percent < 80) return 'bg-amber-500';
     return 'bg-red-500';
@@ -54,7 +56,7 @@ function RateLimitIndicator({ rateLimit, subscription }) {
               <Zap className="w-3 h-3 text-blue-500" />
               Daily Messages
             </span>
-            <span className="text-slate-800 font-bold">{remaining} / {dailyLimit}</span>
+            <span className="text-slate-800 font-bold">{isUnlimited ? `Unlimited (${sub.sentToday || 0} sent)` : `${remaining} / ${dailyLimit}`}</span>
           </div>
           <div className="h-2.5 bg-slate-100 border border-slate-200/50 rounded-full overflow-hidden">
             <motion.div

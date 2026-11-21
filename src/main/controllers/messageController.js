@@ -53,8 +53,8 @@ export const getStatus = async (req, res, user = null) => {
       rateLimit: rateLimiter.getStats(),
       subscription: {
         plan: mapped ? mapped.subscription.plan : 'free',
-        dailyLimit: mapped ? mapped.subscription.dailyLimit : 100,
-        remaining: canSend.remaining,
+        dailyLimit: mapped ? mapped.subscription.dailyLimit : 'Unlimited',
+        remaining: canSend.remaining !== undefined ? canSend.remaining : 'Unlimited',
         canSend: canSend.allowed
       }
     },
@@ -77,7 +77,7 @@ async function getWarnings(user = null) {
       });
     }
     
-    if (!canSend.allowed && canSend.reason === 'Daily limit reached') {
+    if (!canSend.allowed && canSend.reason === 'Daily limit reached' && user.subscription?.plan !== 'free') {
       warnings.push({
         type: 'limit',
         message: `Daily message limit (${user.subscription.dailyLimit}) reached. Upgrade to Premium for more.`,

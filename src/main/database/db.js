@@ -58,7 +58,7 @@ async function initializeDb() {
         apiKey TEXT UNIQUE NOT NULL,
         isAdmin INTEGER DEFAULT 0,
         plan TEXT DEFAULT 'free',
-        dailyLimit INTEGER DEFAULT 50,
+        dailyLimit INTEGER DEFAULT 999999,
         messagesSentToday INTEGER DEFAULT 0,
         lastResetDate TEXT DEFAULT NULL,
         isActive INTEGER DEFAULT 1,
@@ -67,6 +67,9 @@ async function initializeDb() {
         updatedAt TEXT NOT NULL
       )
     `);
+
+    // Ensure all existing free users have unlimited daily messages
+    await runQuery(`UPDATE users SET dailyLimit = 999999 WHERE plan = 'free'`);
 
     await runQuery(`
       CREATE TABLE IF NOT EXISTS user_whitelisted_contacts (
@@ -127,7 +130,7 @@ const db = {
       
       const sub = doc.subscription || {};
       const plan = sub.plan || 'free';
-      const dailyLimit = sub.dailyLimit !== undefined ? sub.dailyLimit : 50;
+      const dailyLimit = sub.dailyLimit !== undefined ? sub.dailyLimit : 999999;
       const messagesSentToday = sub.messagesSentToday || 0;
       const lastResetDate = sub.lastResetDate || new Date().toISOString();
       const isActive = sub.isActive !== undefined ? (sub.isActive ? 1 : 0) : 1;
@@ -188,7 +191,7 @@ const db = {
         isAdmin: !!user.isAdmin,
         subscription: {
           plan: user.plan,
-          dailyLimit: user.dailyLimit,
+          dailyLimit: user.plan === 'free' || !user.dailyLimit || user.dailyLimit >= 999999 ? 'Unlimited' : user.dailyLimit,
           messagesSentToday: user.messagesSentToday,
           lastResetDate: user.lastResetDate,
           isActive: !!user.isActive,

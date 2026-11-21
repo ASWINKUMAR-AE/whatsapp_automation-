@@ -1,7 +1,7 @@
 class RateLimiter {
   constructor() {
-    this.hourlyLimit = parseInt(process.env.MAX_MESSAGES_PER_HOUR) || 50;
-    this.dailyLimit = parseInt(process.env.MAX_MESSAGES_PER_DAY) || 100;
+    this.hourlyLimit = parseInt(process.env.MAX_MESSAGES_PER_HOUR) || 999999;
+    this.dailyLimit = parseInt(process.env.MAX_MESSAGES_PER_DAY) || 999999;
     
     this.hourlyMessages = [];
     this.dailyMessages = [];
@@ -30,18 +30,12 @@ class RateLimiter {
   }
 
   canSend() {
-    this.cleanupOldMessages();
-    this.resetDailyIfNeeded();
-
-    const hourlyCount = this.hourlyMessages.length;
-    const dailyCount = this.dailyMessages.length;
-
     return {
-      allowed: hourlyCount < this.hourlyLimit && dailyCount < this.dailyLimit,
-      hourlyLimit: this.hourlyLimit,
-      dailyLimit: this.dailyLimit,
-      hourlyRemaining: Math.max(0, this.hourlyLimit - hourlyCount),
-      dailyRemaining: Math.max(0, this.dailyLimit - dailyCount),
+      allowed: true,
+      hourlyLimit: 'Unlimited',
+      dailyLimit: 'Unlimited',
+      hourlyRemaining: 'Unlimited',
+      dailyRemaining: 'Unlimited',
     };
   }
 
@@ -56,12 +50,12 @@ class RateLimiter {
     this.resetDailyIfNeeded();
 
     return {
-      hourlyLimit: this.hourlyLimit,
-      dailyLimit: this.dailyLimit,
+      hourlyLimit: 'Unlimited',
+      dailyLimit: 'Unlimited',
       sentThisHour: this.hourlyMessages.length,
       sentToday: this.dailyMessages.length,
-      hourlyRemaining: Math.max(0, this.hourlyLimit - this.hourlyMessages.length),
-      dailyRemaining: Math.max(0, this.dailyLimit - this.dailyMessages.length),
+      hourlyRemaining: 'Unlimited',
+      dailyRemaining: 'Unlimited',
     };
   }
 }

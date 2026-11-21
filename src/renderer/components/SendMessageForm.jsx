@@ -75,10 +75,6 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
 
   const canSend = () => {
     if (!isConnected) return { allowed: false, reason: 'WhatsApp not connected. Scan QR first.' };
-    if (rateLimit?.canSend === false) return { allowed: false, reason: rateLimit.reason || 'Daily limit reached.' };
-    if (rateLimit?.remaining !== undefined && rateLimit.remaining <= 0) {
-      return { allowed: false, reason: 'Daily message limit reached.' };
-    }
     return { allowed: true };
   };
 
@@ -211,8 +207,12 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
         
         {rateLimit && (
           <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg font-medium">
-            <Clock className="w-3 h-3" />
-            <span>{rateLimit.remaining !== undefined ? `${rateLimit.remaining} messages left today` : `${rateLimit.dailyRemaining || 0} left today`}</span>
+            <Clock className="w-3 h-3 text-emerald-600" />
+            <span>
+              {rateLimit.remaining === 'Unlimited' || rateLimit.plan === 'free' || !rateLimit.remaining
+                ? 'Unlimited messages today'
+                : `${rateLimit.remaining} left today`}
+            </span>
           </div>
         )}
       </div>

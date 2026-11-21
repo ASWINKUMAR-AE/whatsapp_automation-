@@ -44,11 +44,11 @@ export default function DashboardPage() {
       sentToday: 0,
       subscription: {
         plan: 'free',
-        dailyLimit: 50,
-        remaining: 50,
+        dailyLimit: 'Unlimited',
+        remaining: 'Unlimited',
         canSend: true
       },
-      rateLimit: { hourlyLimit: 50, dailyLimit: 100, hourlyRemaining: 50, dailyRemaining: 100 }
+      rateLimit: { hourlyLimit: 'Unlimited', dailyLimit: 'Unlimited', hourlyRemaining: 'Unlimited', dailyRemaining: 'Unlimited' }
     },
     warnings: []
   });

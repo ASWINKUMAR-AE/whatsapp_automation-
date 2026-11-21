@@ -62,14 +62,15 @@ router.get('/plans', (req, res) => {
         id: 'free',
         name: 'Free Plan',
         price: 0,
-        dailyLimit: 50,
+        dailyLimit: 'Unlimited',
         features: [
-          '50 messages per day',
+          'Unlimited messages per day',
           'Basic anti-spam protection',
           'Email support',
-          'WhatsApp client management'
+          'WhatsApp client management',
+          'Group messaging support'
         ],
-        popular: false
+        popular: true
       },
       {
         id: 'premium',

@@ -15,7 +15,7 @@ class UserService {
             isAdmin: !!isAdmin,
             subscription: {
                 plan: 'free',
-                dailyLimit: 50,
+                dailyLimit: 999999, // Unlimited
                 messagesSentToday: 0,
                 lastResetDate: new Date().toISOString(),
                 isActive: true
@@ -88,6 +88,15 @@ class UserService {
         if (user.subscription.expiryDate && new Date() > new Date(user.subscription.expiryDate)) {
             await db.users.update({ _id: userId }, { $set: { 'subscription.isActive': false } });
             return { allowed: false, reason: 'Subscription expired' };
+        }
+
+        // Unlimited messages for Free plan (or when dailyLimit is null, >= 999999, or 'Unlimited')
+        if (user.subscription.plan === 'free' || !user.subscription.dailyLimit || user.subscription.dailyLimit >= 999999 || user.subscription.dailyLimit === 'Unlimited') {
+            return {
+                allowed: true,
+                remaining: 'Unlimited',
+                limit: 'Unlimited'
+            };
         }
 
         if (user.subscription.messagesSentToday >= user.subscription.dailyLimit) {
