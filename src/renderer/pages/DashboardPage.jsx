@@ -292,11 +292,6 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
 
-        <RateLimitIndicator 
-          rateLimit={status.stats?.subscription} 
-          subscription={status.stats?.subscription}
-        />
-
         <StatsCards stats={status.stats} loading={loading} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">

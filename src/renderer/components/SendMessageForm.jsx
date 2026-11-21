@@ -204,17 +204,6 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
             <p className="text-slate-600 text-sm">Send to individual contacts or WhatsApp groups</p>
           </div>
         </div>
-        
-        {rateLimit && (
-          <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg font-medium">
-            <Clock className="w-3 h-3 text-emerald-600" />
-            <span>
-              {rateLimit.remaining === 'Unlimited' || rateLimit.plan === 'free' || !rateLimit.remaining
-                ? 'Unlimited messages today'
-                : `${rateLimit.remaining} left today`}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Target Destination Toggle: Contact vs Group */}

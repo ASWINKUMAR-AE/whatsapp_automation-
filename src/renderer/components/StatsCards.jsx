@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Send, AlertCircle, TrendingUp, Clock, Crown, Zap } from 'lucide-react';
+import { Send, AlertCircle, TrendingUp, Crown, Zap } from 'lucide-react';
 
 function StatsCards({ stats, loading }) {
   const subscription = stats?.subscription || {};
@@ -14,20 +14,20 @@ function StatsCards({ stats, loading }) {
       iconColor: 'text-purple-600',
     },
     {
-      label: 'Daily Limit',
-      value: subscription.dailyLimit || 50,
+      label: 'Total Sent',
+      value: stats?.totalSent || 0,
       icon: Zap,
       gradient: 'from-blue-400 to-indigo-500',
       bg: 'bg-blue-50 border border-blue-100',
       iconColor: 'text-blue-600',
     },
     {
-      label: 'Remaining',
-      value: subscription.remaining || (subscription.dailyLimit || 50) - (subscription.sentToday || 0),
-      icon: Clock,
-      gradient: 'from-emerald-400 to-cyan-500',
-      bg: 'bg-emerald-50 border border-emerald-100',
-      iconColor: 'text-emerald-600',
+      label: 'Failed',
+      value: stats?.totalFailed || 0,
+      icon: AlertCircle,
+      gradient: 'from-rose-400 to-red-500',
+      bg: 'bg-rose-50 border border-rose-100',
+      iconColor: 'text-rose-600',
     },
     {
       label: 'Plan',
