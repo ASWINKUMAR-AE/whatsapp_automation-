@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+dist-electron/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# WhatsApp session data & logs
+wwebjs_auth/
+session/
+uploads/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+database/*.db
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
