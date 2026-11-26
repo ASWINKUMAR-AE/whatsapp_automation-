@@ -160,6 +160,11 @@ export const reconnectWhatsApp = async () => {
   return response.data;
 };
 
+export const refreshQR = async () => {
+  const response = await api.post('/refresh-qr');
+  return response.data;
+};
+
 export const logoutDevice = async () => {
   const response = await api.post('/logout-device');
   return response.data;

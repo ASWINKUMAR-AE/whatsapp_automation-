@@ -302,43 +302,43 @@ class WhatsAppService {
         console.error('Error wiping database:', dbErr);
       }
 
-      // 3. UPDATE STATUS
-      this.isReady = false;
-      this.connectionStatus = 'disconnected';
-      this.qrCodeData = null;
-      this.emit('disconnected', 'LOGOUT');
-
-      // 4. DELETE SESSION FOLDER
-      // Chrome is now dead so file locks are gone — no need for many retries
-      const sessionPath = path.join(this.activeSessionPath, 'session-whatsapp-automation');
-      if (fs.existsSync(sessionPath)) {
-        console.log('Deleting session folder:', sessionPath);
-        let deleted = false;
-        for (let i = 1; i <= 5; i++) {
-          try {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-            console.log('Session folder deleted successfully.');
-            deleted = true;
-            break;
-          } catch (err) {
-            console.warn(`Deletion attempt ${i} failed (${err.code}), retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+      // 3. DELETE ALL SESSION FOLDERS
+      const sessionFolders = [
+        path.join(this.activeSessionPath, `session-${this.clientId}`),
+        path.join(this.activeSessionPath, 'session-whatsapp-automation')
+      ];
+      for (const sPath of sessionFolders) {
+        if (sPath && fs.existsSync(sPath)) {
+          console.log('Deleting session folder:', sPath);
+          for (let i = 1; i <= 3; i++) {
+            try {
+              fs.rmSync(sPath, { recursive: true, force: true });
+              console.log('Session folder deleted successfully:', sPath);
+              break;
+            } catch (err) {
+              console.warn(`Deletion attempt ${i} failed (${err.code}), retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
           }
-        }
-        if (!deleted) {
-          console.error('Could not delete session folder — new QR will be generated anyway.');
         }
       }
 
-      // 5. RE-INITIALIZE (Chrome is dead, session cleared — safe to start fresh)
+      // 4. UPDATE STATUS TO CONNECTING (WAITING FOR NEW QR)
+      this.isReady = false;
+      this.connectionStatus = 'connecting';
+      this.qrCodeData = null;
+      this.emit('change_state', 'connecting');
+
+      // 5. RE-INITIALIZE (Chrome is dead, session cleared — start fresh to generate new QR immediately)
       console.log('Re-initializing WhatsApp client for new QR...');
       this.initialize(this.clientId);
 
       return true;
     } catch (outerErr) {
       console.error('Critical error during logoutDevice:', outerErr);
-      this.connectionStatus = 'disconnected';
+      this.connectionStatus = 'connecting';
       this.isReady = false;
+      this.qrCodeData = null;
       this.initialize(this.clientId);
       return false;
     }
@@ -446,13 +446,62 @@ class WhatsAppService {
     };
   }
 
+  async refreshQR() {
+    if (this.isReady) {
+      return { success: false, reason: 'Already connected' };
+    }
+
+    try {
+      if (this.client && this.client.pupPage) {
+        const page = this.client.pupPage;
+        if (!page.isClosed()) {
+          // Check for WhatsApp Web's click-to-reload QR code button
+          const clicked = await page.evaluate(() => {
+            const elements = Array.from(document.querySelectorAll('button, div[role="button"], span'));
+            for (const el of elements) {
+              const text = (el.textContent || '').toLowerCase();
+              if (text.includes('click to reload') || text.includes('reload qr') || text.includes('click to refresh')) {
+                el.click();
+                return true;
+              }
+            }
+            return false;
+          });
+
+          if (clicked) {
+            console.log('Clicked WhatsApp Web reload QR button');
+            return { success: true, method: 'button_click' };
+          }
+
+          console.log('Reloading WhatsApp Web page for fresh QR code...');
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+          return { success: true, method: 'page_reload' };
+        }
+      }
+    } catch (err) {
+      console.warn('In-page QR refresh failed, soft reconnecting:', err.message);
+    }
+
+    await this.reconnect();
+    return { success: true, method: 'reconnect' };
+  }
+
   async reconnect() {
+    if (this.isReconnecting) {
+      console.log('Reconnection already in progress, skipping duplicate.');
+      return;
+    }
+    this.isReconnecting = true;
     console.log('Manual reconnect requested. Restarting client...');
-    // destroy() now kills Chrome process + waits for OS to release locks
-    await this.destroy();
-    this.connectionStatus = 'connecting';
-    this.emit('change_state', 'connecting');
-    this.initialize(this.clientId);
+    try {
+      await this.destroy();
+      this.connectionStatus = 'connecting';
+      this.qrCodeData = null;
+      this.emit('change_state', 'connecting');
+      this.initialize(this.clientId);
+    } finally {
+      setTimeout(() => { this.isReconnecting = false; }, 3000);
+    }
   }
 
   async destroy() {

@@ -17,7 +17,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getStatus, getLogs, reconnectWhatsApp, logoutDevice } from '../services/api';
+import { getStatus, getLogs, reconnectWhatsApp, logoutDevice, refreshQR } from '../services/api';
 import socketService from '../services/socket';
 import StatusCard from '../components/StatusCard';
 import QRSection from '../components/QRSection';
@@ -166,24 +166,32 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRefreshQR = async () => {
+    try {
+      const data = await refreshQR();
+      if (data && data.qrCode) {
+        setStatus(prev => ({ ...prev, qrCode: data.qrCode, status: 'qr' }));
+      } else {
+        await fetchStatus();
+      }
+    } catch (err) {
+      console.error('Failed to refresh QR:', err);
+      handleReconnect();
+    }
+  };
+
   const handleLogoutDevice = async () => {
     try {
       setStatus(prev => ({ 
         ...prev, 
+        isReady: false,
         status: 'connecting',
-        stats: {
-          totalSent: 0,
-          totalFailed: 0,
-          sentToday: 0,
-          dailyLimit: 0,
-          remaining: 0,
-          pending: 0,
-          subscription: {}
-        }
+        qrCode: null,
       }));
       // Clear logs immediately for better UX
       setLogs([]);
       await logoutDevice();
+      setTimeout(fetchStatus, 1500);
     } catch (error) {
       console.error('Failed to logout device:', error);
       fetchStatus();
@@ -261,36 +269,21 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           <div className="lg:col-span-2 space-y-6">
             <AnimatePresence mode="wait">
-              {!status.isReady && status.qrCode ? (
+              {!status.isReady ? (
                 <motion.div
-                  key="qr"
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  key="qr-section"
+                  initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
                 >
-                  <QRSection qrCode={status.qrCode} />
-                </motion.div>
-              ) : !status.isReady ? (
-                <motion.div
-                  key="disconnected"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex flex-col items-center justify-center p-12 glass-card border-red-200 text-center shadow-lg bg-white"
-                >
-                  <XCircle className="w-16 h-16 text-red-500 mb-6" />
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">WhatsApp Disconnected</h2>
-                  <p className="text-slate-600 mb-8 max-w-md">Your WhatsApp session has ended or failed to connect. Click below to generate a new QR code and link your device.</p>
-                  <button
-                    onClick={handleReconnect}
-                    className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-semibold rounded-xl shadow-lg shadow-red-600/15 transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center gap-2"
-                  >
-                    <Zap className="w-5 h-5" />
-                    Show QR & Reconnect
-                  </button>
+                  <QRSection 
+                    qrCode={status.qrCode} 
+                    isGenerating={!status.qrCode || status.status === 'connecting'}
+                    onRefresh={handleRefreshQR}
+                  />
                 </motion.div>
               ) : (
-                  <div key="features" className="space-y-4">
+                <div key="features" className="space-y-4">
                     {status.isReady && (
                       <StatusCard 
                         status={status.status} 

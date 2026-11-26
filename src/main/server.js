@@ -26,6 +26,14 @@ const io = new Server(httpServer, {
   },
 });
 
+io.on('connection', (socket) => {
+  if (whatsappService.isReady) {
+    socket.emit('whatsapp:ready');
+  } else if (whatsappService.qrCodeData) {
+    socket.emit('whatsapp:qr', { qr: whatsappService.qrCodeData });
+  }
+});
+
 import path from 'path';
 import fs from 'fs';
 const uploadsDir = path.join(process.cwd(), 'uploads');

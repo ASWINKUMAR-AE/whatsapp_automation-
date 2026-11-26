@@ -125,6 +125,16 @@ router.post('/reconnect', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/refresh-qr', authMiddleware, async (req, res) => {
+  try {
+    const result = await whatsappService.refreshQR();
+    res.json({ success: true, ...result, qrCode: whatsappService.qrCodeData });
+  } catch (error) {
+    console.error("REFRESH QR ERROR:", error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to refresh QR' });
+  }
+});
+
 router.post('/logout-device', authMiddleware, logoutDevice);
 
 export default router;
