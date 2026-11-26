@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoUrl from '../../assets/wp_logo.png';
+import logoUrl from '../../assets/wp_logo.svg';
 import { 
   MessageSquare, 
   User, 
@@ -233,15 +233,19 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row md:items-center md:justify-between mb-6"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3.5">
             <img 
               src={logoUrl} 
               alt="WhatsApp Automation" 
-              className="w-13 h-13 object-contain rounded-2xl shadow-md shadow-emerald-500/15" 
+              className="w-12 h-12 md:w-14 md:h-14 object-contain rounded-2xl shadow-md shadow-emerald-500/15 shrink-0" 
             />
-            <div>
-              <h1 className="text-3xl font-bold gradient-text tracking-tight">WhatsApp Automation</h1>
-              <p className="text-slate-600 text-sm font-medium">Desktop Automation</p>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-2xl md:text-3xl font-extrabold gradient-text tracking-tight leading-tight">
+                WhatsApp Automation
+              </h1>
+              <p className="text-slate-500 text-xs md:text-sm font-medium">
+                Desktop Automation
+              </p>
             </div>
           </div>
           
