@@ -414,13 +414,14 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
                   </div>
                   
                   <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Search contacts by name or number..."
                       value={whitelistSearch}
                       onChange={(e) => setWhitelistSearch(e.target.value)}
-                      className="input-field w-full pl-10 text-xs py-1.5"
+                      className="input-field w-full !pl-10 text-xs py-1.5"
+                      style={{ paddingLeft: '2.5rem' }}
                     />
                   </div>
                   
@@ -483,13 +484,14 @@ export default function BulkCampaignForm({ isConnected, rateLimit, onCampaignCom
                   </div>
                   
                   <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Search groups by name..."
                       value={groupSearch}
                       onChange={(e) => setGroupSearch(e.target.value)}
-                      className="input-field w-full pl-10 text-xs py-1.5"
+                      className="input-field w-full !pl-10 text-xs py-1.5"
+                      style={{ paddingLeft: '2.5rem' }}
                     />
                   </div>
                   

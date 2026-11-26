@@ -63,46 +63,7 @@ export const getStatus = async (req, res, user = null) => {
 };
 
 async function getWarnings(user = null) {
-  const warnings = [];
-  const rateStats = rateLimiter.getStats();
-
-  if (user) {
-    const canSend = await userService.canSendMessage(user._id || user.id);
-    
-    if (!user.subscription.isActive) {
-      warnings.push({
-        type: 'subscription',
-        message: 'Your subscription has expired. Please renew to continue.',
-        code: 'SUBSCRIPTION_EXPIRED'
-      });
-    }
-    
-    if (!canSend.allowed && canSend.reason === 'Daily limit reached' && user.subscription?.plan !== 'free') {
-      warnings.push({
-        type: 'limit',
-        message: `Daily message limit (${user.subscription.dailyLimit}) reached. Upgrade to Premium for more.`,
-        code: 'DAILY_LIMIT_REACHED'
-      });
-    }
-  } else {
-    if (rateStats.hourlyRemaining === 0) {
-      warnings.push({
-        type: 'limit',
-        message: 'Hourly message limit reached. Please wait.',
-        code: 'HOURLY_LIMIT_REACHED',
-      });
-    }
-
-    if (rateStats.dailyRemaining === 0) {
-      warnings.push({
-        type: 'limit',
-        message: 'Daily message limit reached. Try again tomorrow.',
-        code: 'DAILY_LIMIT_REACHED',
-      });
-    }
-  }
-
-  return warnings;
+  return [];
 }
 
 export const getLogs = async (req, res, user = null) => {
@@ -180,25 +141,11 @@ export const sendMessage = async (req, res, user = null) => {
     if (user) {
       const canSend = await userService.canSendMessage(user._id || user.id);
       
-      if (!user.subscription.isActive) {
-        return res.status(403).json({
-          success: false,
-          error: 'Subscription expired. Please renew.',
-          code: 'SUBSCRIPTION_EXPIRED',
-          subscription: { isActive: false }
-        });
-      }
-      
       if (!canSend.allowed) {
         return res.status(429).json({
           success: false,
-          error: canSend.reason || 'Daily limit reached',
-          code: canSend.reason === 'Daily limit reached' ? 'DAILY_LIMIT' : 'LIMIT_EXCEEDED',
-          subscription: {
-            sentToday: user.subscription.messagesSentToday,
-            dailyLimit: user.subscription.dailyLimit,
-            remaining: 0
-          }
+          error: canSend.reason || 'Message limit reached',
+          code: 'LIMIT_EXCEEDED'
         });
       }
 

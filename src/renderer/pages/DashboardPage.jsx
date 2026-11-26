@@ -226,37 +226,14 @@ export default function DashboardPage() {
           className="flex flex-col md:flex-row md:items-center md:justify-between mb-6"
         >
           <div className="flex items-center gap-4">
-            <img src={logoUrl} alt="bulkflow logo" className="w-14 h-14 object-contain rounded-2xl shadow-md shadow-slate-100" />
+            <img src={logoUrl} alt="WhatsApp Automation logo" className="w-14 h-14 object-contain rounded-2xl shadow-md shadow-slate-100" />
             <div>
-              <h1 className="text-3xl font-bold gradient-text">bulkflow</h1>
-              <p className="text-slate-600 text-sm">Automation Dashboard</p>
+              <h1 className="text-3xl font-bold gradient-text">WhatsApp Automation</h1>
+              <p className="text-slate-600 text-sm">Desktop Automation</p>
             </div>
           </div>
           
           <div className="flex items-center gap-3 mt-4 md:mt-0 flex-wrap">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
-              isPremium 
-                ? 'bg-amber-50 border-amber-200' 
-                : 'bg-slate-100 border-slate-200'
-            }`}>
-              {isPremium ? (
-                <Crown className="w-4 h-4 text-amber-600" />
-              ) : (
-                <Shield className="w-4 h-4 text-slate-500" />
-              )}
-              <span className={`text-sm font-semibold ${isPremium ? 'text-amber-700' : 'text-slate-600'}`}>
-                {isPremium ? 'Premium' : 'Free Plan'}
-              </span>
-            </div>
-
-            <button
-              onClick={() => navigate('/subscription')}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-600 transition-colors"
-            >
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-semibold text-blue-600">Upgrade</span>
-            </button>
-
             <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 border border-slate-200">
               <User className="w-4 h-4 text-slate-500" />
               <span className="text-sm font-semibold text-slate-700">{user?.name || 'Local User'}</span>
@@ -425,7 +402,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800">Update Center</h3>
-                  <p className="text-xs text-slate-500">Keep bulkflow updated</p>
+                  <p className="text-xs text-slate-500">Keep WhatsApp Automation updated</p>
                 </div>
               </div>
 

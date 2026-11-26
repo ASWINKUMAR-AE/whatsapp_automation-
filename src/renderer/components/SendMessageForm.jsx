@@ -112,8 +112,7 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
     } catch (error) {
       const errorMsg = error.error || 'Failed to send message';
       const errorType = error.code === 'DUPLICATE_MESSAGE' ? 'spam' : 
-                        error.code === 'CONTACT_NOT_VALIDATED' ? 'validation' :
-                        error.code === 'SUBSCRIPTION_EXPIRED' || error.subscription?.isActive === false ? 'subscription' : 'error';
+                        error.code === 'CONTACT_NOT_VALIDATED' ? 'validation' : 'error';
       setResult({ success: false, message: errorMsg, type: errorType });
     } finally {
       setLoading(false);
@@ -322,13 +321,14 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
 
             <div className="space-y-2">
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   value={groupSearch}
                   onChange={(e) => setGroupSearch(e.target.value)}
                   placeholder="Search groups..."
-                  className="input-field w-full pl-10 text-sm"
+                  className="input-field w-full !pl-10 text-sm"
+                  style={{ paddingLeft: '2.5rem' }}
                 />
               </div>
 
@@ -482,14 +482,6 @@ function SendMessageForm({ onMessageSent, isConnected, rateLimit, initialRecipie
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
               )}
               <span className="text-sm flex-1 font-semibold">{result.message}</span>
-              {result.type === 'subscription' && (
-                <button 
-                  onClick={() => navigate('/subscription')}
-                  className="text-xs underline hover:text-blue-800 font-bold"
-                >
-                  Upgrade
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>

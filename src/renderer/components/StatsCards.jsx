@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Send, AlertCircle, TrendingUp, Crown, Zap } from 'lucide-react';
+import { Send, AlertCircle, TrendingUp, CheckCircle, Zap } from 'lucide-react';
 
 function StatsCards({ stats, loading }) {
   const subscription = stats?.subscription || {};
@@ -30,18 +30,12 @@ function StatsCards({ stats, loading }) {
       iconColor: 'text-rose-600',
     },
     {
-      label: 'Plan',
-      value: subscription.plan === 'premium' ? 'Premium' : 'Free',
-      icon: subscription.plan === 'premium' ? Crown : Send,
-      gradient: subscription.plan === 'premium' 
-        ? 'from-amber-400 to-orange-500' 
-        : 'from-slate-400 to-slate-600',
-      bg: subscription.plan === 'premium' 
-        ? 'bg-amber-50 border border-amber-100' 
-        : 'bg-slate-100 border border-slate-200',
-      iconColor: subscription.plan === 'premium' 
-        ? 'text-amber-600' 
-        : 'text-slate-500',
+      label: 'System Status',
+      value: 'Active',
+      icon: CheckCircle,
+      gradient: 'from-emerald-400 to-teal-500',
+      bg: 'bg-emerald-50 border border-emerald-100',
+      iconColor: 'text-emerald-600',
     },
   ];
 

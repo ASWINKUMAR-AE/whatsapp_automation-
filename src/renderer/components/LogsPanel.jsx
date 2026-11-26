@@ -73,13 +73,14 @@ function LogsPanel({ logs }) {
       {/* Search & Filter */}
       <div className="flex gap-2 mb-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search messages..."
-            className="input-field w-full pl-10 py-2 text-sm"
+            className="input-field w-full !pl-10 py-2 text-sm"
+            style={{ paddingLeft: '2.5rem' }}
           />
         </div>
       </div>

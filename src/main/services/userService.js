@@ -87,42 +87,10 @@ class UserService {
     }
 
     async canSendMessage(userId) {
-        await this.resetDailyMessageCount(userId);
-        const user = await this.getUserById(userId);
-        
-        if (!user) return { allowed: false, reason: 'User not found' };
-
-        if (!user.subscription.isActive) {
-            return { allowed: false, reason: 'Subscription expired' };
-        }
-
-        if (user.subscription.expiryDate && new Date() > new Date(user.subscription.expiryDate)) {
-            await db.users.update({ _id: userId }, { $set: { 'subscription.isActive': false } });
-            return { allowed: false, reason: 'Subscription expired' };
-        }
-
-        // Unlimited messages for Free plan (or when dailyLimit is null, >= 999999, or 'Unlimited')
-        if (user.subscription.plan === 'free' || !user.subscription.dailyLimit || user.subscription.dailyLimit >= 999999 || user.subscription.dailyLimit === 'Unlimited') {
-            return {
-                allowed: true,
-                remaining: 'Unlimited',
-                limit: 'Unlimited'
-            };
-        }
-
-        if (user.subscription.messagesSentToday >= user.subscription.dailyLimit) {
-            return {
-                allowed: false,
-                reason: 'Daily limit reached',
-                remaining: 0,
-                limit: user.subscription.dailyLimit
-            };
-        }
-
         return {
             allowed: true,
-            remaining: user.subscription.dailyLimit - user.subscription.messagesSentToday,
-            limit: user.subscription.dailyLimit
+            remaining: 'Unlimited',
+            limit: 'Unlimited'
         };
     }
 

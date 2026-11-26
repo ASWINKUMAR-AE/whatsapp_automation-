@@ -54,7 +54,7 @@
   },
   "build": {
     "appId": "com.whatsapp.automation",
-    "productName": "WhatsAppAutomation",
+    "productName": "WhatsApp Automation",
     "directories": {
       "output": "dist"
     },

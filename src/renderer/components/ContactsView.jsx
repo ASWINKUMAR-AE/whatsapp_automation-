@@ -53,13 +53,14 @@ export default function ContactsView({ onSelectContact }) {
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
         <input
           type="text"
           placeholder="Search by name or number..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input-field w-full pl-12"
+          className="input-field w-full !pl-12"
+          style={{ paddingLeft: '3rem' }}
         />
       </div>
 

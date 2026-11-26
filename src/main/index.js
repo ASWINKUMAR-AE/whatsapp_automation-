@@ -90,6 +90,7 @@ async function startServer() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: 'WhatsApp Automation',
     width: 1400,
     height: 900,
     backgroundColor: '#f8fafc',

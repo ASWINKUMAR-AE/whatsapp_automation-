@@ -110,7 +110,7 @@ export default function SessionLogsView({ onBack }) {
         <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
           <Clock className="w-12 h-12 text-slate-350 mb-3" />
           <h3 className="font-semibold text-slate-700">No Sessions Found</h3>
-          <p className="text-sm text-slate-500 max-w-xs mt-1">Your session logs will be logged locally as you interact with bulkflow.</p>
+          <p className="text-sm text-slate-500 max-w-xs mt-1">Your session logs will be logged locally as you interact with WhatsApp Automation.</p>
         </div>
       ) : (
         <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
