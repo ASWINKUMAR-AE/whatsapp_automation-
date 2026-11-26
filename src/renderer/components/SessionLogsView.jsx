@@ -4,7 +4,7 @@ import {
   Clock, Activity, ChevronDown, ChevronUp, RefreshCw, 
   CheckCircle, MessageSquare, Shield, Send, Inbox, Database, ChevronLeft
 } from 'lucide-react';
-import { getStatus } from '../services/api';
+import { getStatus, getSessionLogs } from '../services/api';
 
 export default function SessionLogsView({ onBack }) {
   const [sessions, setSessions] = useState([]);
@@ -16,20 +16,14 @@ export default function SessionLogsView({ onBack }) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/sessions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
+      const data = await getSessionLogs();
+      if (data && data.success) {
         setSessions(data.sessions || []);
       } else {
-        setError(data.error || 'Failed to fetch session history');
+        setError(data?.error || 'Failed to fetch session history');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Session logs fetch error:', err);
       setError('Network error loading session logs');
     } finally {
       setLoading(false);

@@ -108,6 +108,22 @@ async function initializeDb() {
       )
     `);
 
+    await runQuery(`
+      CREATE TABLE IF NOT EXISTS message_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        recipient TEXT,
+        contactName TEXT,
+        text TEXT,
+        type TEXT,
+        status TEXT,
+        mediaType TEXT,
+        msgId TEXT,
+        error TEXT,
+        timestamp TEXT NOT NULL
+      )
+    `);
+
     console.log('SQLite Database Tables initialized successfully.');
   } catch (err) {
     console.error('Failed to initialize SQLite Database:', err);
@@ -405,26 +421,119 @@ const db = {
     }
   },
 
-  // Mock message_logs table to keep database free of message history
+  // Persistent SQLite message_logs table
   message_logs: {
     async insert(doc) {
-      return { ...doc, _id: 'mocked', id: 'mocked' };
+      const userId = doc.user_id || doc.userId || null;
+      const recipient = doc.recipient || doc.to || doc.from || '';
+      const contactName = doc.contactName || '';
+      const text = doc.text || '';
+      const type = doc.type || 'sent';
+      const status = doc.status || 'success';
+      const mediaType = doc.mediaType || null;
+      const msgId = doc.msgId || null;
+      const error = doc.error || null;
+      const timestamp = doc.timestamp || new Date().toISOString();
+
+      const res = await runQuery(
+        `INSERT INTO message_logs (user_id, recipient, contactName, text, type, status, mediaType, msgId, error, timestamp) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, recipient, contactName, text, type, status, mediaType, msgId, error, timestamp]
+      );
+
+      return {
+        ...doc,
+        id: res.lastID,
+        _id: res.lastID,
+        user_id: userId,
+        recipient,
+        to: recipient,
+        from: recipient,
+        contactName,
+        text,
+        type,
+        status,
+        mediaType,
+        msgId,
+        error,
+        timestamp
+      };
     },
+
     async findOne(filter) {
-      return null;
+      let sql = 'SELECT * FROM message_logs WHERE 1=1';
+      const params = [];
+      if (filter.id || filter._id) {
+        sql += ' AND id = ?';
+        params.push(filter.id || filter._id);
+      }
+      if (filter.msgId) {
+        sql += ' AND msgId = ?';
+        params.push(filter.msgId);
+      }
+      const row = await getQuery(sql, params);
+      if (!row) return null;
+      return { ...row, _id: row.id, to: row.recipient, from: row.recipient };
     },
-    find(filter) {
+
+    find(filter = {}) {
+      let sortDesc = true;
+      let limitCount = 50;
+
       const chain = {
-        sort() { return this; },
-        limit() { return this; },
-        async then(resolve) {
-          resolve([]);
+        sort(sortObj) {
+          if (sortObj && sortObj.timestamp === 1) sortDesc = false;
+          return this;
+        },
+        limit(num) {
+          if (num) limitCount = num;
+          return this;
+        },
+        async then(resolve, reject) {
+          try {
+            let sql = 'SELECT * FROM message_logs WHERE 1=1';
+            const params = [];
+
+            if (filter.type && filter.type !== 'all') {
+              sql += ' AND type = ?';
+              params.push(filter.type);
+            }
+            if (filter.user_id) {
+              sql += ' AND (user_id = ? OR user_id IS NULL)';
+              params.push(filter.user_id);
+            }
+            if (filter.search) {
+              sql += ' AND (text LIKE ? OR recipient LIKE ? OR contactName LIKE ?)';
+              const term = `%${filter.search}%`;
+              params.push(term, term, term);
+            }
+
+            sql += ` ORDER BY id ${sortDesc ? 'DESC' : 'ASC'} LIMIT ?`;
+            params.push(limitCount);
+
+            const rows = await allQuery(sql, params);
+            const logs = rows.map(r => ({
+              ...r,
+              _id: r.id,
+              to: r.recipient,
+              from: r.recipient
+            }));
+            resolve(logs);
+          } catch (err) {
+            reject(err);
+          }
         }
       };
       return chain;
     },
+
     async remove(filter) {
-      return 0;
+      if (filter && (filter.id || filter._id)) {
+        const res = await runQuery('DELETE FROM message_logs WHERE id = ?', [filter.id || filter._id]);
+        return res.changes;
+      }
+      const res = await runQuery('DELETE FROM message_logs');
+      return res.changes;
     }
   },
 
@@ -478,19 +587,19 @@ const db = {
       return res.changes;
     },
 
-    find(filter) {
+    find(filter = {}) {
       const chain = {
         async then(resolve, reject) {
           try {
             let sql = 'SELECT * FROM session_logs WHERE 1=1';
             const params = [];
 
-            if (filter.userId) {
-              sql += ' AND userId = ?';
+            if (filter && filter.userId) {
+              sql += ' AND (userId = ? OR userId IS NULL)';
               params.push(filter.userId);
             }
 
-            sql += ' ORDER BY id DESC';
+            sql += ' ORDER BY id DESC LIMIT 100';
 
             const rows = await allQuery(sql, params);
             const sessions = rows.map(row => ({

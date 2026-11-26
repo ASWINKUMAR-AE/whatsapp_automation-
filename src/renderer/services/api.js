@@ -170,4 +170,9 @@ export const logoutDevice = async () => {
   return response.data;
 };
 
+export const getSessionLogs = async () => {
+  const response = await api.get('/sessions');
+  return response.data;
+};
+
 export default api;

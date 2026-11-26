@@ -30,9 +30,23 @@ function resetDailyStats() {
   }
 }
 
-async function addLog(entry, userId = null) {
-  // Anti-spam message logging disabled for privacy and database cleanliness.
-  return;
+export async function addLog(entry, userId = null) {
+  try {
+    const timestamp = entry.timestamp || new Date().toISOString();
+    const logDoc = {
+      ...entry,
+      user_id: userId || entry.user_id || entry.userId || null,
+      recipient: entry.recipient || entry.to || entry.from || '',
+      to: entry.recipient || entry.to || entry.from || '',
+      from: entry.recipient || entry.to || entry.from || '',
+      timestamp
+    };
+    const saved = await db.message_logs.insert(logDoc);
+    return saved;
+  } catch (err) {
+    console.error('Failed to save message log to SQLite:', err);
+    return null;
+  }
 }
 
 export const getStatus = async (req, res, user = null) => {
@@ -82,19 +96,16 @@ export const getLogs = async (req, res, user = null) => {
     }
 
     if (search) {
-      query.$or = [
-        { text: new RegExp(search, 'i') },
-        { recipient: new RegExp(search, 'i') }
-      ];
+      query.search = search;
     }
 
     const logs = await db.message_logs.find(query)
       .sort({ timestamp: -1 })
-      .limit(50);
+      .limit(100);
 
     res.json({
       success: true,
-      logs: logs,
+      logs: logs || [],
     });
   } catch (error) {
     console.error('Error getting logs:', error);
@@ -298,15 +309,20 @@ export const sendMessage = async (req, res, user = null) => {
         : `Sent single message to ${finalRecipient} (${contactName || ''})`)
     );
 
-    await addLog({
+    const logEntry = await addLog({
       msgId: messageResult.id?._serialized,
       type: 'sent',
       to: finalRecipient,
+      recipient: finalRecipient,
       contactName,
       text: finalText,
       mediaType,
       status: 'success',
     }, user ? (user._id || user.id) : null);
+
+    if (req.io && logEntry) {
+      req.io.emit('whatsapp:message', logEntry);
+    }
 
     res.json({
       success: true,
@@ -326,13 +342,18 @@ export const sendMessage = async (req, res, user = null) => {
 
     await addSessionAction(`Failed to send message to ${finalRecipient || req.query.recipient}: ${error.message}`);
 
-    await addLog({
+    const failEntry = await addLog({
       type: 'sent',
-      to: req.query.recipient,
-      text: req.query.text,
+      to: finalRecipient || req.query.recipient,
+      recipient: finalRecipient || req.query.recipient,
+      text: finalText || req.query.text,
       status: 'failed',
       error: error.message,
     }, user ? (user._id || user.id) : null);
+
+    if (req.io && failEntry) {
+      req.io.emit('whatsapp:message', failEntry);
+    }
 
     res.status(500).json({
       success: false,
@@ -536,14 +557,16 @@ export const healthCheck = (req, res) => {
 export const getSessionLogs = async (req, res, user = null) => {
   try {
     const userId = user ? (user._id || user.id) : null;
-    if (!userId) {
-      return res.status(400).json({ success: false, error: 'User ID is required' });
+    let sessions = [];
+    if (userId) {
+      sessions = await db.session_logs.find({ userId });
     }
-
-    const sessions = await db.session_logs.find({ userId });
+    if (!sessions || sessions.length === 0) {
+      sessions = await db.session_logs.find({});
+    }
     res.json({
       success: true,
-      sessions
+      sessions: sessions || []
     });
   } catch (error) {
     console.error('Error fetching session logs:', error);

@@ -24,7 +24,7 @@ export async function startSession(userId) {
   currentSession.loginTime = new Date().toISOString();
   currentSession.messagesSent = 0;
   currentSession.messagesReceived = 0;
-  currentSession.actions = ['User initialized bulkflow session'];
+  currentSession.actions = ['User initialized WhatsApp Automation session'];
 
   try {
     const res = await db.session_logs.insert({

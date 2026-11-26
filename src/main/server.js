@@ -8,6 +8,7 @@ import authRoutes from './routes/authRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import { whatsappService } from './services/index.js';
 import db from './database/db.js'; // Import db directly
+import { addLog } from './controllers/messageController.js';
 
 dotenv.config();
 
@@ -74,10 +75,22 @@ whatsappService.on('message', async (message) => {
     await incrementSessionReceived();
     await addSessionAction(`Received incoming WhatsApp message from ${contactName} (${message.from})`);
 
-    io.emit('whatsapp:message', {
+    const logItem = await addLog({
+      type: 'received',
+      from: message.from,
+      recipient: message.from,
+      contactName: contactName,
+      text: message.body,
+      status: 'received',
+      msgId: message.id?._serialized,
+      timestamp: new Date().toISOString(),
+    });
+
+    io.emit('whatsapp:message', logItem || {
       id: Date.now(),
       type: 'received',
       from: message.from,
+      recipient: message.from,
       contactName: contactName,
       text: message.body,
       timestamp: new Date().toISOString(),

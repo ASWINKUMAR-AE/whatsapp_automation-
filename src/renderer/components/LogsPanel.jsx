@@ -5,7 +5,7 @@ import {
   ArrowUpRight, ArrowDownLeft, RefreshCw
 } from 'lucide-react';
 
-function LogsPanel({ logs }) {
+function LogsPanel({ logs = [], onRefresh }) {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -65,7 +65,11 @@ function LogsPanel({ logs }) {
             <p className="text-xs text-slate-600 font-semibold">{logs.length} messages</p>
           </div>
         </div>
-        <button className="p-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors">
+        <button 
+          onClick={onRefresh}
+          title="Refresh logs"
+          className="p-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+        >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
