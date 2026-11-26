@@ -88,9 +88,9 @@ export default function LoginPage() {
       >
         <div className="glass-card p-8 shadow-xl">
           <div className="flex flex-col items-center mb-8">
-            <img src={logoUrl} alt="bulkflow logo" className="w-16 h-16 object-contain mb-4 rounded-xl shadow-md shadow-slate-100" />
+            <img src={logoUrl} alt="WhatsApp Automation logo" className="w-16 h-16 object-contain mb-4 rounded-xl shadow-md shadow-emerald-500/15" />
             <h1 className="text-3xl font-bold gradient-text">Welcome Back</h1>
-            <p className="text-slate-600 mt-2">Sign in to continue to bulkflow</p>
+            <p className="text-slate-600 mt-2">Sign in to continue to WhatsApp Automation</p>
           </div>
 
           {error && (
