@@ -41,6 +41,17 @@ class UserService {
         return await db.users.findOne({ apiKey });
     }
 
+    async getDefaultUser() {
+        const user = await db.users.findOne({});
+        if (user) return user;
+        return await this.createUser({
+            name: 'Local User',
+            email: 'admin@local.app',
+            password: 'local-password',
+            isAdmin: true
+        });
+    }
+
     async comparePassword(user, password) {
         return await bcrypt.compare(password, user.password);
     }

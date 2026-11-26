@@ -119,25 +119,18 @@ router.post('/login', async (req, res) => {
 
 router.get('/me', async (req, res) => {
   try {
+    let user = null;
     const token = req.headers.authorization?.replace('Bearer ', '');
     
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'No token provided',
-        code: 'NO_TOKEN'
-      });
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        user = await userService.getUserById(decoded.userId);
+      } catch (e) {}
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await userService.getUserById(decoded.userId);
-    
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not found',
-        code: 'USER_NOT_FOUND'
-      });
+      user = await userService.getDefaultUser();
     }
 
     res.json({
@@ -145,10 +138,10 @@ router.get('/me', async (req, res) => {
       user: userService.mapUser(user)
     });
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      error: 'Invalid token',
-      code: 'INVALID_TOKEN'
+    const defaultUser = await userService.getDefaultUser();
+    res.json({
+      success: true,
+      user: userService.mapUser(defaultUser)
     });
   }
 });

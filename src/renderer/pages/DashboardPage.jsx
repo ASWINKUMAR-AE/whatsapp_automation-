@@ -5,7 +5,6 @@ import logoUrl from '../../assets/wp_logo.png';
 import { 
   MessageSquare, 
   User, 
-  LogOut, 
   Shield, 
   Crown, 
   CreditCard, 
@@ -31,7 +30,7 @@ import ContactsView from '../components/ContactsView';
 import BulkCampaignForm from '../components/BulkCampaignForm';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [status, setStatus] = useState({
@@ -206,11 +205,6 @@ export default function DashboardPage() {
     return statusMap[status.status] || statusMap.connecting;
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   const connStatus = getConnectionDisplay();
   const StatusIcon = connStatus.icon;
   
@@ -265,15 +259,8 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 border border-slate-200">
               <User className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-semibold text-slate-700">{user?.name}</span>
+              <span className="text-sm font-semibold text-slate-700">{user?.name || 'Local User'}</span>
             </div>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-red-600" />
-            </button>
           </div>
         </motion.div>
 
